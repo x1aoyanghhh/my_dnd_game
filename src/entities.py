@@ -16,6 +16,10 @@ class Combatant:
     attack_enhancement: int = 0  # Added to attack damage.
     defense_enhancement: int = 0  # Added to shield gained from defend effects.
     hit_enhancement: int = 0  # Added to d20 before comparing to AC (nat 1 / nat 20 override).
+    # Encounter AI / special rules (monsters only; ignored for player).
+    monster_tag: str = "goblin"
+    # If set, every N-th enemy turn (1-based count), gain +1 attack enhancement before acting.
+    buff_attack_every_n_enemy_turns: int | None = None
 
     def __post_init__(self) -> None:
         if self.hp > self.max_hp:
@@ -47,6 +51,17 @@ class Combatant:
         return lost
 
 
+def reset_between_encounters(combatant: Combatant) -> None:
+    """
+    Clear shield and all enhancement stacks when starting a new encounter.
+    Used for the player between fights (each enemy is a fresh Combatant).
+    """
+    combatant.reset_shield()
+    combatant.attack_enhancement = 0
+    combatant.defense_enhancement = 0
+    combatant.hit_enhancement = 0
+
+
 def make_player(
     name: str = "Player",
     max_hp: int = 40,
@@ -64,8 +79,44 @@ def make_player(
         attack_enhancement=attack_enhancement,
         defense_enhancement=defense_enhancement,
         hit_enhancement=hit_enhancement,
+        monster_tag="player",
+    )
+
+
+def make_goblin() -> Combatant:
+    """Baseline early enemy."""
+    return Combatant(
+        name="Goblin",
+        max_hp=25,
+        hp=25,
+        ac=10,
+        monster_tag="goblin",
+    )
+
+
+def make_beast() -> Combatant:
+    """High damage, low AC, low HP."""
+    return Combatant(
+        name="Beast",
+        max_hp=16,
+        hp=16,
+        ac=7,
+        monster_tag="beast",
+    )
+
+
+def make_hobgoblin() -> Combatant:
+    """Tanky, low base hit damage; gains +1 attack enhancement every 3 enemy turns."""
+    return Combatant(
+        name="Hobgoblin",
+        max_hp=48,
+        hp=48,
+        ac=16,
+        monster_tag="hobgoblin",
+        buff_attack_every_n_enemy_turns=3,
     )
 
 
 def make_monster(name: str = "Goblin", max_hp: int = 25, ac: int = 10) -> Combatant:
-    return Combatant(name=name, max_hp=max_hp, hp=max_hp, ac=ac)
+    """Legacy helper; defaults to goblin-like stats."""
+    return Combatant(name=name, max_hp=max_hp, hp=max_hp, ac=ac, monster_tag="goblin")
